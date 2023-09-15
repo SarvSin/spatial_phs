@@ -6,8 +6,7 @@ An appropriate measure of hospitalisation risk due to COPD in a region is the st
 
  
 <img width="452" alt="image" src="https://github.com/SarvSin/spatial_phs/assets/117599272/c64d55a5-0333-4192-aa3e-57355180afb0">
-                                               
-                                               Figure 1: Raw vs smoothed SMRs of COPD in England
+Figure 1: Raw vs smoothed SMRs of COPD in England
 
 
 ## RESULTS
