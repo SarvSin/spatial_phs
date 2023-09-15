@@ -6,6 +6,7 @@ An appropriate measure of hospitalisation risk due to COPD in a region is the st
 
  
 <img width="452" alt="image" src="https://github.com/SarvSin/spatial_phs/assets/117599272/c64d55a5-0333-4192-aa3e-57355180afb0">
+
 Figure 1: Raw vs smoothed SMRs of COPD in England
 
 
@@ -17,7 +18,7 @@ Absolute differences between raw and smoothed SMRs are plotted in Figure 2. Part
  
 <img width="452" alt="image" src="https://github.com/SarvSin/spatial_phs/assets/117599272/ee8afa38-0d7f-470e-a576-15638418aa9e">
                                           
-                                          Figure 2: Absolute raw vs smoothed SMR difference for English districts
+Figure 2: Absolute raw vs smoothed SMR difference for English districts
 
 Corby is another county where the difference between raw and smoothed SMRs is relatively large at 0.083. Like the City of London, sampling variability is found to be large at Corby considering a high SMR variance at 0.008. In both cases of City of London and Corby, the use of smoothed SMRs is much recommended as the problem of sampling variability due to small expected numbers is mitigated.
 
@@ -28,12 +29,12 @@ Rutland county has the second-largest difference between raw and smoothed SMRs a
  
 <img width="452" alt="image" src="https://github.com/SarvSin/spatial_phs/assets/117599272/25a0d44b-1d09-4f13-9a17-5bf6c1e3508f">
                                   
-                                  Table 1: Quantitative information for districts of note
+Table 1: Quantitative information for districts of note
 
  
 <img width="452" alt="image" src="https://github.com/SarvSin/spatial_phs/assets/117599272/16e49522-df2a-43e9-bacd-b179f070b67b">
                                                     
-                                                    Figure 3: COPD SMR (Raw) trend - 2001-2010
+Figure 3: COPD SMR (Raw) trend - 2001-2010
 
 
 
