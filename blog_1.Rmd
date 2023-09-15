@@ -1,0 +1,170 @@
+---
+title: "Part B 503"
+author: "Sarveshwari Singh"
+date: "28/12/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+1. Summarising the number of hospital admissions for COPD in England between 2001 and 2010 - 
+
+```{r}
+# Reading the observed data 
+England_o <- read_csv('/Users/sarveshwarisingh/Downloads/copdobserved.csv')
+England_o
+# Summarising observed data
+summary(England_o)
+
+# Reading the expected data
+England_e <- read_csv('/Users/sarveshwarisingh/Downloads/copdexpected.csv')
+# Summarising the expected data
+England_e
+
+# Reading the shapefiles
+England_s <- readOGR(dsn='/Users/sarveshwarisingh/Downloads/ENGLAND SHAPEFILES', layer='englandlocalauthority')
+England_s
+
+# Creating a column with total observed cases in each local authority between 2001 and 2010
+England_o$total_o <- rowSums(England_o[,2:11])
+# Creating a column with total expected cases in each local authority between 2001 and 2010
+England_e$total_e <- rowSums(England_e[,2:11])
+
+# Creating a new dataset consisting of variables of interest - Name of authority, total observed and expected cases between 2001 and 2010
+England_data <- data.frame(England_o$Name, England_o$total_o, England_e$total_e)
+
+# Summarising this new dataset called 'England_data'
+summary(England_data)
+colnames(England_data)
+
+# Cleaning for further analyses
+England_data <- England_data %>%
+  rename(Observed = England_o.total_o, Expected = England_e.total_e, Name = England_o.Name)
+England_data <- England_data %>%
+  rename(name= Name)
+```
+
+Summary - 
+
+2. Estimating raw and smoothed standardised morbidity ratios (SMR). Spatial patterns and extreme values will be considered. 
+
+```{r}
+# Calculating raw SMRs
+England_data$SMR_raw <- England_data$Observed/England_data$Expected
+summary(England_data)
+
+# Mapping the raw SMRs
+SMR <- merge(England_s, England_data, by='name')
+SMR <- st_as_sf(SMR)
+ggplot(SMR, aes(fill=SMR_raw))+
+  geom_sf(colour=NA)+
+  theme_bw()+
+  labs(x='Longitude', y='Latitude', fill='SMR')+
+  scale_fill_gradientn(colours=brewer.pal(9, 'RdPu'), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2))
+
+# Calculating a smoothed SMR
+# Creating a neighbourhood 
+neigh <- poly2nb(England_s, row.names = rownames(England_s))
+# Creating a matrix for following a function call
+matr <- nb2mat(neigh, style='B')
+#Running a smooth model
+model <- S.CARleroux(formula = Observed ~ offset(log(Expected)), 
+                     data=England_data, 
+                     family = 'poisson', 
+                     W = matr, 
+                     burnin = 20000, 
+                     n.sample = 100000, 
+                     thin = 10, rho = 1)
+
+England_data$SMR_smooth <- model$fitted.values/England_data$Expected
+summary(England_data)
+
+# Mapping the smooth SMRs
+
+SMR <- merge(England_s, England_data, by='name')
+SMR <- st_as_sf(SMR)
+ggplot(SMR, aes(fill=SMR_smooth))+
+  geom_sf(colour=NA)+
+  theme_bw()+
+  labs(x='Longitude', y='Latitude', fill='SMR')+
+  scale_fill_gradientn(colours=brewer.pal(9, 'RdPu'), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2))
+
+# Plotting both raw and smooth SMRs together
+
+SMR_both <- reshape2::melt(England_data[,c("name", "SMR_raw", "SMR_smooth")],
+                           id.vars = "name",
+                           variable.name = 'Type',
+                           value.name = 'SMR')
+
+SMR_both$Type <- as.character(SMR_both$Type)
+SMR_both$Type[SMR_both$Type == 'SMR_raw'] <- 'Raw SMRs'
+SMR_both$Type[SMR_both$Type == 'SMR_smooth'] <- 'Smoothed SMRs'
+
+# Combining Raw SMRs and the shapefile
+SMR_both <- merge(st_as_sf(England_s),
+                  SMR_both,
+                  by = 'name')
+
+# Creating map of Raw and smoothed SMRs
+ggplot(SMR_both,
+       aes(fill = SMR)) +
+  # Plot as a map using the shapefiles
+  geom_sf(colour = NA) +
+  # Black and white theme
+  theme_bw() +
+  # Plot labels
+  labs(x = 'Longitude',
+       y = 'Latitude',
+       fill = 'SMR') +
+  # Facetting by SMR type
+  facet_wrap(. ~ Type) +
+  # Setting bands and colour scheme on the legend
+  scale_fill_gradientn(colours = brewer.pal(9, 'RdPu'),
+                       breaks = c(0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2))
+
+
+```
+
+Spatial patterns - In England, hospital admission rates appear to be higher than the national average for the northern, north-west, north-east, Yorkshires, and the south-west regions. From the spatial mapping it is clear that the overall distribution of risk is stable. There seem to be no significant differences between raw and smoothed SMRs in local authorities, however this will be tested in the following analysis. 
+
+Extreme values 
+
+```{r}
+# some exploratory numerical analysis
+England_data[England_data$SMR_smooth == min(England_data$SMR_smooth), ]  
+England_data[England_data$SMR_raw == min(England_data$SMR_raw), ] 
+England_data[England_data$SMR_raw == max(England_data$SMR_raw), ] 
+England_data[England_data$SMR_smooth == max(England_data$SMR_smooth), ] 
+ab_difference <- sort(abs(England_data$SMR_smooth - England_data$SMR_raw))
+ab_difference[length(ab_difference)]
+plot(ab_difference)
+England_data[abs(England_data$SMR_smooth - England_data$SMR_raw) == ab_difference[length(ab_difference)],]
+England_data[abs(England_data$SMR_smooth - England_data$SMR_raw) == ab_difference[length(ab_difference)-1],]
+England_data[abs(England_data$SMR_smooth - England_data$SMR_raw) == ab_difference[length(ab_difference)-2],]
+
+```
+
+Extreme values - 
+Are the big changes appropriate? - 
+
+3. Changes in the risks of hospitalisation over time in England are explored. 
+
+```{r}
+# How SMR changes over time
+max(England_e[,11])
+Observed_ts <- colSums(England_o[,c(2:11)])
+Observed_ts
+Expected_ts <- colSums(England_e[, c(2:11)])
+Expected_ts
+SMR_ts <- Observed_ts/Expected_ts
+SMR_ts_df <- as.data.frame(SMR_ts)
+row.names(SMR_ts_df) <- c("2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010")
+SMR_ts_df$Date <- c("2001", "2002", "2003", "2004", "2005", "2006", "2007", "2008", "2009", "2010")
+SMR_ts_df
+ggplot(data=SMR_ts_df, aes(x=Date, y=SMR_ts, group=1))+
+  geom_line()
+```
+
